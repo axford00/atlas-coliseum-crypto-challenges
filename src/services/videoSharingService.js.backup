@@ -1,0 +1,421 @@
+// src/services/videoSharingService.js - Social Media & Email Sharing
+import * as FileSystem from 'expo-file-system';
+import * as MediaLibrary from 'expo-media-library';
+import * as Sharing from 'expo-sharing';
+import { Platform } from 'react-native';
+
+class VideoSharingService {
+  constructor() {
+    this.cache = new Map();
+  }
+
+  /**
+   * Main sharing method - handles all platforms
+   */
+  async shareVideo(video, platform = 'general') {
+    console.log(`📱 Sharing video to ${platform}:`, video.id);
+    
+    try {
+      // Check permissions first
+      const hasPermission = await this.checkPermissions();
+      if (!hasPermission) return false;
+
+      // Download video locally if needed
+      const localVideoUri = await this.ensureLocalVideo(video);
+      
+      // Create engaging share content
+      const shareContent = this.createShareContent(video, platform);
+      
+      // Share based on platform
+      switch (platform) {
+        case 'instagram':
+          return await this.shareToInstagram(localVideoUri, shareContent);
+        case 'tiktok':
+          return await this.shareToTikTok(localVideoUri, shareContent);
+        case 'youtube':
+          return await this.shareToYouTube(localVideoUri, shareContent);
+        case 'facebook':
+          return await this.shareToFacebook(localVideoUri, shareContent);
+        case 'twitter':
+          return await this.shareToTwitter(localVideoUri, shareContent);
+        case 'whatsapp':
+          return await this.shareToWhatsApp(localVideoUri, shareContent);
+        case 'email':
+          return await this.shareViaEmail(localVideoUri, shareContent);
+        case 'save':
+          return await this.saveToGallery(localVideoUri, video);
+        default:
+          return await this.shareGeneral(localVideoUri, shareContent);
+      }
+      
+    } catch (error) {
+      console.error(`❌ Error sharing video to ${platform}:`, error);
+      return false;
+    }
+  }
+
+  /**
+   * Check and request necessary permissions
+   */
+  async checkPermissions() {
+    try {
+      // Media Library permission for saving videos
+      const { status: mediaStatus } = await MediaLibrary.requestPermissionsAsync();
+      
+      if (mediaStatus !== 'granted') {
+        console.log('⚠️ Media library permission not granted');
+        return false;
+      }
+      
+      return true;
+    } catch (error) {
+      console.error('❌ Permission check failed:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Download video locally for sharing
+   */
+  async ensureLocalVideo(video) {
+    try {
+      // Check cache first
+      if (this.cache.has(video.id)) {
+        const cachedUri = this.cache.get(video.id);
+        const fileExists = await FileSystem.getInfoAsync(cachedUri);
+        if (fileExists.exists) {
+          return cachedUri;
+        }
+      }
+
+      // Download video
+      const fileName = `atlas_challenge_${video.id}.mp4`;
+      const localUri = FileSystem.documentDirectory + fileName;
+      
+      console.log('📥 Downloading video for sharing...');
+      const downloadResult = await FileSystem.downloadAsync(video.videoUrl, localUri);
+      
+      // Cache the local URI
+      this.cache.set(video.id, downloadResult.uri);
+      
+      console.log('✅ Video downloaded for sharing');
+      return downloadResult.uri;
+      
+    } catch (error) {
+      console.error('❌ Error downloading video:', error);
+      // Return original URL as fallback
+      return video.videoUrl;
+    }
+  }
+
+  /**
+   * Create platform-specific share content
+   */
+  createShareContent(video, platform) {
+    const baseContent = {
+      challengeTitle: video.challengeTitle || 'Fitness Challenge',
+      warriorName: video.responderName || 'Atlas Warrior',
+      appName: 'Atlas Fitness',
+      appUrl: 'https://atlas-fitness.app', // Replace with your actual URL
+    };
+
+    const platformContent = {
+      instagram: {
+        message: `💪 Just crushed "${baseContent.challengeTitle}" on ${baseContent.appName}! \n\n🏛️ Join the fitness revolution\n#AtlasFitness #FitnessChallenge #WorkoutMotivation #FitnessCommunity`,
+        hashtags: ['#AtlasFitness', '#FitnessChallenge', '#WorkoutMotivation', '#Gains']
+      },
+      
+      tiktok: {
+        message: `🔥 Challenge CRUSHED! "${baseContent.challengeTitle}" ✅\n\nUsing ${baseContent.appName} 💪\n\n#fitness #challenge #workout #gains #motivation`,
+        hashtags: ['#fitness', '#challenge', '#workout', '#gains', '#motivation', '#AtlasFitness']
+      },
+      
+      youtube: {
+        title: `${baseContent.challengeTitle} - Atlas Fitness Challenge Victory`,
+        description: `Watch me crush "${baseContent.challengeTitle}" using ${baseContent.appName}!\n\n💪 Ready to join the fitness revolution? Download ${baseContent.appName}: ${baseContent.appUrl}\n\n🏛️ The Coliseum awaits your victory!\n\n#AtlasFitness #FitnessChallenge #WorkoutMotivation #FitnessApp`
+      },
+      
+      facebook: {
+        message: `🏆 Just completed "${baseContent.challengeTitle}" on ${baseContent.appName}!\n\nFeeling stronger every day 💪 This app's challenge system is incredible for staying motivated.\n\nAnyone else ready to join the fitness revolution? 🔥\n\n${baseContent.appUrl}`
+      },
+      
+      twitter: {
+        message: `🔥 Crushed "${baseContent.challengeTitle}" on @AtlasFitness!\n\n💪 This app's challenge system = motivation game changer\n\n🏛️ Join the Coliseum: ${baseContent.appUrl}\n\n#AtlasFitness #FitnessChallenge #WorkoutWin`
+      },
+      
+      whatsapp: {
+        message: `Hey! 💪 Just crushed "${baseContent.challengeTitle}" on Atlas Fitness!\n\nThis app is incredible for fitness motivation. You should definitely check it out: ${baseContent.appUrl}\n\nWanna do some challenges together? 🔥`
+      },
+      
+      email: {
+        subject: `🏆 Check out my ${baseContent.challengeTitle} victory!`,
+        body: `Hey!\n\nI just completed "${baseContent.challengeTitle}" using Atlas Fitness and wanted to share my victory with you!\n\nThis app has completely transformed my workout motivation. The challenge system and community (called "The Coliseum") makes fitness so much more engaging.\n\nYou should definitely check it out: ${baseContent.appUrl}\n\nMaybe we can do some challenges together?\n\nStay strong! 💪\n\nP.S. - The attached video shows my challenge completion!`
+      },
+      
+      general: {
+        message: `🏆 Challenge Victory: "${baseContent.challengeTitle}"\n\n💪 Completed on ${baseContent.appName}\n🏛️ Join the fitness revolution: ${baseContent.appUrl}\n\n#AtlasFitness #FitnessChallenge #WorkoutMotivation`
+      }
+    };
+
+    return platformContent[platform] || platformContent.general;
+  }
+
+  /**
+   * Instagram sharing
+   */
+  async shareToInstagram(videoUri, content) {
+    try {
+      if (Platform.OS === 'ios') {
+        // iOS: Use URL scheme
+        const instagramUrl = `instagram://library?AssetPath=${encodeURIComponent(videoUri)}`;
+        const { Linking } = require('react-native');
+        
+        const canOpen = await Linking.canOpenURL(instagramUrl);
+        if (canOpen) {
+          await Linking.openURL(instagramUrl);
+          return true;
+        }
+      }
+      
+      // Fallback: General share with Instagram-optimized message
+      return await this.shareGeneral(videoUri, content);
+    } catch (error) {
+      console.error('❌ Instagram share failed:', error);
+      return await this.shareGeneral(videoUri, content);
+    }
+  }
+
+  /**
+   * TikTok sharing
+   */
+  async shareToTikTok(videoUri, content) {
+    try {
+      // TikTok URL scheme (if available)
+      const { Linking } = require('react-native');
+      const tiktokUrl = 'tiktok://';
+      
+      const canOpen = await Linking.canOpenURL(tiktokUrl);
+      if (canOpen) {
+        // Save to gallery first for TikTok import
+        await this.saveToGallery(videoUri);
+        await Linking.openURL(tiktokUrl);
+        return true;
+      }
+      
+      // Fallback
+      return await this.shareGeneral(videoUri, content);
+    } catch (error) {
+      console.error('❌ TikTok share failed:', error);
+      return await this.shareGeneral(videoUri, content);
+    }
+  }
+
+  /**
+   * YouTube sharing
+   */
+  async shareToYouTube(videoUri, content) {
+    try {
+      const { Linking } = require('react-native');
+      const youtubeUrl = 'youtube://';
+      
+      const canOpen = await Linking.canOpenURL(youtubeUrl);
+      if (canOpen) {
+        // Save to gallery for YouTube Studio import
+        await this.saveToGallery(videoUri);
+        await Linking.openURL(youtubeUrl);
+        return true;
+      }
+      
+      return await this.shareGeneral(videoUri, content);
+    } catch (error) {
+      console.error('❌ YouTube share failed:', error);
+      return await this.shareGeneral(videoUri, content);
+    }
+  }
+
+  /**
+   * Facebook sharing
+   */
+  async shareToFacebook(videoUri, content) {
+    try {
+      const { Linking } = require('react-native');
+      const facebookUrl = 'fb://';
+      
+      const canOpen = await Linking.canOpenURL(facebookUrl);
+      if (canOpen) {
+        await this.saveToGallery(videoUri);
+        await Linking.openURL(facebookUrl);
+        return true;
+      }
+      
+      return await this.shareGeneral(videoUri, content);
+    } catch (error) {
+      console.error('❌ Facebook share failed:', error);
+      return await this.shareGeneral(videoUri, content);
+    }
+  }
+
+  /**
+   * Twitter sharing
+   */
+  async shareToTwitter(videoUri, content) {
+    try {
+      const { Linking } = require('react-native');
+      const tweetText = encodeURIComponent(content.message);
+      const twitterUrl = `twitter://post?message=${tweetText}`;
+      
+      const canOpen = await Linking.canOpenURL(twitterUrl);
+      if (canOpen) {
+        await this.saveToGallery(videoUri);
+        await Linking.openURL(twitterUrl);
+        return true;
+      }
+      
+      return await this.shareGeneral(videoUri, content);
+    } catch (error) {
+      console.error('❌ Twitter share failed:', error);
+      return await this.shareGeneral(videoUri, content);
+    }
+  }
+
+  /**
+   * WhatsApp sharing
+   */
+  async shareToWhatsApp(videoUri, content) {
+    try {
+      const { Linking } = require('react-native');
+      const message = encodeURIComponent(content.message);
+      const whatsappUrl = `whatsapp://send?text=${message}`;
+      
+      const canOpen = await Linking.canOpenURL(whatsappUrl);
+      if (canOpen) {
+        // Note: WhatsApp doesn't support direct video sharing via URL scheme
+        // We'll share the text and user can manually attach video
+        await this.saveToGallery(videoUri);
+        await Linking.openURL(whatsappUrl);
+        return true;
+      }
+      
+      return await this.shareGeneral(videoUri, content);
+    } catch (error) {
+      console.error('❌ WhatsApp share failed:', error);
+      return await this.shareGeneral(videoUri, content);
+    }
+  }
+
+  /**
+   * Email sharing
+   */
+  async shareViaEmail(videoUri, content) {
+    try {
+      const { MailComposer } = require('expo-mail-composer');
+      
+      const isAvailable = await MailComposer.isAvailableAsync();
+      if (!isAvailable) {
+        return await this.shareGeneral(videoUri, content);
+      }
+
+      await MailComposer.composeAsync({
+        subject: content.subject,
+        body: content.body,
+        attachments: [videoUri],
+      });
+      
+      return true;
+    } catch (error) {
+      console.error('❌ Email share failed:', error);
+      return await this.shareGeneral(videoUri, content);
+    }
+  }
+
+  /**
+   * Save to device gallery
+   */
+  async saveToGallery(videoUri, video) {
+    try {
+      const asset = await MediaLibrary.createAssetAsync(videoUri);
+      
+      // Create Atlas Fitness album if it doesn't exist
+      let album = await MediaLibrary.getAlbumAsync('Atlas Fitness');
+      if (!album) {
+        album = await MediaLibrary.createAlbumAsync('Atlas Fitness', asset, false);
+      } else {
+        await MediaLibrary.addAssetsToAlbumAsync([asset], album, false);
+      }
+      
+      console.log('✅ Video saved to gallery');
+      return true;
+    } catch (error) {
+      console.error('❌ Save to gallery failed:', error);
+      return false;
+    }
+  }
+
+  /**
+   * General sharing (fallback)
+   */
+  async shareGeneral(videoUri, content) {
+    try {
+      const isAvailable = await Sharing.isAvailableAsync();
+      if (!isAvailable) {
+        console.log('⚠️ Sharing not available on this device');
+        return false;
+      }
+
+      await Sharing.shareAsync(videoUri, {
+        mimeType: 'video/mp4',
+        dialogTitle: content.message || 'Share Atlas Fitness Challenge Victory',
+        UTI: 'public.movie',
+      });
+      
+      return true;
+    } catch (error) {
+      console.error('❌ General share failed:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Get available sharing options for device
+   */
+  async getAvailablePlatforms() {
+    const { Linking } = require('react-native');
+    const platforms = [];
+
+    // Check which apps are installed
+    const appChecks = [
+      { name: 'instagram', scheme: 'instagram://' },
+      { name: 'tiktok', scheme: 'tiktok://' },
+      { name: 'youtube', scheme: 'youtube://' },
+      { name: 'facebook', scheme: 'fb://' },
+      { name: 'twitter', scheme: 'twitter://' },
+      { name: 'whatsapp', scheme: 'whatsapp://' },
+    ];
+
+    for (const app of appChecks) {
+      try {
+        const canOpen = await Linking.canOpenURL(app.scheme);
+        if (canOpen) {
+          platforms.push(app.name);
+        }
+      } catch (error) {
+        // App not available
+      }
+    }
+
+    // Always available
+    platforms.push('email', 'save', 'general');
+
+    return platforms;
+  }
+
+  /**
+   * Clear download cache
+   */
+  clearCache() {
+    this.cache.clear();
+    console.log('🗑️ Video sharing cache cleared');
+  }
+}
+
+export default new VideoSharingService();
