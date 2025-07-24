@@ -1,4 +1,7 @@
 // App.tsx - Real Atlas Coliseum with Navigation & Firebase
+// ✅ CRITICAL: Import polyfills FIRST for Solana support
+import './src/polyfills';
+
 import React, { useEffect, useState } from 'react';
 import {
   SafeAreaView,
@@ -131,6 +134,7 @@ const SplashScreen = () => {
             })()}
           </Text>
           <Text style={styles.configText}>🚀 Fresh Infrastructure: ✅ Working</Text>
+          <Text style={styles.configText}>⚡ Solana Polyfills: ✅ Loaded</Text>
         </View>
       </View>
       
@@ -194,6 +198,7 @@ const App = () => {
     console.log('✅ All screens imported successfully');
     console.log('✅ Navigation system ready');
     console.log('✅ Fresh infrastructure stable');
+    console.log('⚡ Solana polyfills loaded');
     
     // ✅ Safe Firebase readiness check
     let firebaseReadyStatus = false;
@@ -273,6 +278,9 @@ const App = () => {
           </Text>
           <Text style={styles.loadingSubtext}>
             All Screens: 📋 Loaded and ready
+          </Text>
+          <Text style={styles.loadingSubtext}>
+            Solana Support: ⚡ Ready for crypto challenges
           </Text>
         </View>
       </SafeAreaView>

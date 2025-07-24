@@ -1,18 +1,18 @@
-// firebase.js - FULLY CORRECTED
+// firebase.js - FULLY CORRECTED WITH SECURE CONFIG
 import { initializeApp } from 'firebase/app';
 import { initializeAuth, getReactNativePersistence, getAuth as firebaseGetAuth } from 'firebase/auth';
 import { getFirestore, connectFirestoreEmulator } from 'firebase/firestore';
 import { getStorage as firebaseGetStorage, connectStorageEmulator } from 'firebase/storage';
 import ReactNativeAsyncStorage from '@react-native-async-storage/async-storage';
 
-// ✅ REAL Firebase config - Atlas Coliseum Crypto project
+// ✅ SECURE Firebase config using environment variables
 const firebaseConfig = {
-  apiKey: "AIzaSyAbQJc0D0P_QDqY8bjZTxt3-AmsHNTsBe8",
-  authDomain: "atlas-coliseum-crypto.firebaseapp.com",
-  projectId: "atlas-coliseum-crypto",
-  storageBucket: "atlas-coliseum-crypto.firebasestorage.app",
-  messagingSenderId: "52129894422",
-  appId: "1:52129894422:web:90100ef575015100006537"
+  apiKey: process.env.EXPO_PUBLIC_FIREBASE_API_KEY,
+  authDomain: process.env.EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN,
+  projectId: process.env.EXPO_PUBLIC_FIREBASE_PROJECT_ID,
+  storageBucket: process.env.EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.EXPO_PUBLIC_FIREBASE_APP_ID
 };
 
 // ✅ CRITICAL: Global state management
@@ -175,7 +175,7 @@ const getStorage = () => {
   if (!isFirebaseReady()) {
     console.warn('⚠️ Firebase Storage not ready');
     
-    // ✅ FIXED: Changed MAX_INIT_ATTACKS to MAX_INIT_ATTEMPTS
+    // ✅ Attempt automatic re-initialization
     if (!firebaseInitialized && initializationAttempts < MAX_INIT_ATTEMPTS) {
       console.log('🔄 Attempting automatic Firebase re-initialization...');
       initializeFirebase();
