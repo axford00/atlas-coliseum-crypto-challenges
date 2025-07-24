@@ -1,4 +1,4 @@
-// RegisterScreen.js - Updated to include phone number collection
+// RegisterScreen.js - FIXED VERSION with TextInput focus handling
 import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
 import { doc, setDoc } from 'firebase/firestore';
 import { useState } from 'react';
@@ -150,10 +150,12 @@ const RegisterScreen = ({ navigation }) => {
         <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
           style={styles.keyboardAvoid}
+          keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
         >
           <ScrollView 
             contentContainerStyle={styles.scrollContent}
             keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
           >
             <View style={styles.content}>
               <Text style={styles.title}>JOIN ATLAS FITNESS</Text>
@@ -169,6 +171,10 @@ const RegisterScreen = ({ navigation }) => {
                   onChangeText={setDisplayName}
                   autoCapitalize="words"
                   autoCorrect={false}
+                  blurOnSubmit={false}
+                  keyboardShouldPersistTaps="handled"
+                  returnKeyType="next"
+                  textContentType="name"
                 />
               </View>
 
@@ -183,6 +189,10 @@ const RegisterScreen = ({ navigation }) => {
                   keyboardType="email-address"
                   autoCapitalize="none"
                   autoCorrect={false}
+                  blurOnSubmit={false}
+                  keyboardShouldPersistTaps="handled"
+                  returnKeyType="next"
+                  textContentType="emailAddress"
                 />
               </View>
 
@@ -196,6 +206,10 @@ const RegisterScreen = ({ navigation }) => {
                   onChangeText={setPhoneNumber}
                   keyboardType="phone-pad"
                   autoCorrect={false}
+                  blurOnSubmit={false}
+                  keyboardShouldPersistTaps="handled"
+                  returnKeyType="next"
+                  textContentType="telephoneNumber"
                 />
                 <Text style={styles.helperText}>
                   This helps your friends find you as a workout buddy
@@ -213,6 +227,10 @@ const RegisterScreen = ({ navigation }) => {
                   secureTextEntry
                   autoCapitalize="none"
                   autoCorrect={false}
+                  blurOnSubmit={false}
+                  keyboardShouldPersistTaps="handled"
+                  returnKeyType="next"
+                  textContentType="newPassword"
                 />
               </View>
 
@@ -227,6 +245,10 @@ const RegisterScreen = ({ navigation }) => {
                   secureTextEntry
                   autoCapitalize="none"
                   autoCorrect={false}
+                  blurOnSubmit={false}
+                  keyboardShouldPersistTaps="handled"
+                  returnKeyType="done"
+                  textContentType="newPassword"
                 />
               </View>
 

@@ -1,3 +1,4 @@
+// LoginScreen.js - FIXED IMAGE LOADING with fallback
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import { useRef, useState } from 'react';
 import {
@@ -25,6 +26,7 @@ const LoginScreen = ({ navigation }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [showLoginModal, setShowLoginModal] = useState(false);
+  const [imageError, setImageError] = useState(false);
   
   // Refs for focusing between inputs
   const passwordRef = useRef(null);
@@ -104,17 +106,47 @@ const LoginScreen = ({ navigation }) => {
     navigation.navigate('Register');
   };
 
+  // Handle image loading error
+  const handleImageError = (error) => {
+    console.log('❌ Background image failed to load:', error);
+    setImageError(true);
+  };
+
+  // Fallback background style if image fails
+  const fallbackBackground = {
+    flex: 1,
+    backgroundColor: '#1a1a1a', // Dark Atlas-style background
+    backgroundImage: 'linear-gradient(135deg, #2C1810 0%, #1a1a1a 100%)', // Fallback gradient
+  };
+
+  const BackgroundComponent = imageError ? View : ImageBackground;
+  const backgroundProps = imageError 
+    ? { style: [styles.background, fallbackBackground] }
+    : { 
+        source: require('../../assets/atlas-login-background.jpg'),
+        style: styles.background,
+        resizeMode: "cover",
+        onError: handleImageError
+      };
+
   return (
-    <ImageBackground
-      source={require('../../assets/atlas-login-background.jpg')}
-      style={styles.background}
-      resizeMode="cover"
-    >
+    <BackgroundComponent {...backgroundProps}>
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.container}
       >
         <View style={styles.content}>
+          
+          {/* Atlas title overlay - visible even if image fails */}
+          <View style={styles.titleOverlay}>
+            <Text style={styles.atlasTitle}>ATLAS FITNESS</Text>
+            <Text style={styles.atlasSubtitle}>VAULT-TEC LOGIN PROTOCOL</Text>
+            {imageError && (
+              <Text style={styles.imageErrorText}>
+                (Background image loading - functionality ready)
+              </Text>
+            )}
+          </View>
           
           {/* Invisible overlay buttons for background interaction */}
           <View style={styles.invisibleButtonsContainer}>
@@ -140,7 +172,7 @@ const LoginScreen = ({ navigation }) => {
               activeOpacity={1}
             />
 
-            {/* Create account button - adjusted size for better alignment */}
+            {/* Create account button - enhanced visibility */}
             <TouchableOpacity
               style={styles.invisibleCreateButton}
               onPress={handleCreateAccount}
@@ -198,6 +230,7 @@ const LoginScreen = ({ navigation }) => {
                   autoCorrect={false}
                   returnKeyType="next"
                   blurOnSubmit={false}
+                  keyboardShouldPersistTaps="handled"
                   placeholderTextColor="#999"
                   onSubmitEditing={() => passwordRef.current?.focus()}
                 />
@@ -213,6 +246,8 @@ const LoginScreen = ({ navigation }) => {
                   onChangeText={setPassword}
                   secureTextEntry
                   returnKeyType="done"
+                  blurOnSubmit={false}
+                  keyboardShouldPersistTaps="handled"
                   onSubmitEditing={handleLogin}
                   placeholderTextColor="#999"
                 />
@@ -243,7 +278,7 @@ const LoginScreen = ({ navigation }) => {
         </Modal>
 
       </KeyboardAvoidingView>
-    </ImageBackground>
+    </BackgroundComponent>
   );
 };
 
@@ -259,6 +294,44 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
   },
+  
+  // NEW: Title overlay for branding
+  titleOverlay: {
+    position: 'absolute',
+    top: height * 0.15,
+    left: width * 0.05,
+    right: width * 0.05,
+    alignItems: 'center',
+    zIndex: 1,
+  },
+  atlasTitle: {
+    fontSize: 36,
+    fontWeight: 'bold',
+    color: '#FFD700',
+    textAlign: 'center',
+    letterSpacing: 3,
+    textShadowColor: '#000',
+    textShadowOffset: { width: 2, height: 2 },
+    textShadowRadius: 4,
+  },
+  atlasSubtitle: {
+    fontSize: 14,
+    color: '#FFD700',
+    textAlign: 'center',
+    letterSpacing: 2,
+    marginTop: 8,
+    textShadowColor: '#000',
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 2,
+  },
+  imageErrorText: {
+    fontSize: 10,
+    color: '#888',
+    textAlign: 'center',
+    marginTop: 5,
+    fontStyle: 'italic',
+  },
+  
   invisibleButtonsContainer: {
     position: 'absolute',
     top: height * 0.68,
